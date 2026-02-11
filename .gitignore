@@ -1,0 +1,18 @@
+# Packages
+*.tar.zst
+*.deb
+/packaging/arch/source/
+/packaging/arch/src/
+/packaging/arch/pkg/
+/packaging/rpm/files.tar
+/packaging/rpm/BUILD
+/packaging/rpm/RPMS
+/packaging/rpm/SRPMS
+
+# Build trash
+*.mod*
+*.o
+*.ko
+*.cmd
+*.order
+*.symvers

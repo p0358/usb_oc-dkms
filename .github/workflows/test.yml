@@ -1,0 +1,337 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  test-debian:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:stable
+    steps:
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential linux-image-amd64 linux-headers-amd64
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(dpkg -L $(dpkg -s linux-headers-amd64 | grep "Depends: " | cut -d " " -f2) | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-ubuntu:
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential linux-headers-generic
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(dpkg -L $(dpkg -s linux-headers-generic | grep "Depends: " | cut -d " " -f2 | cut -d "," -f1) | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-proxmox-trixie:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+    steps:
+      - name: Install Dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y curl
+          sh -c "echo deb http://download.proxmox.com/debian/pve trixie pve-no-subscription >> /etc/apt/sources.list"
+          curl -o /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg https://enterprise.proxmox.com/debian/proxmox-release-trixie.gpg
+          apt-get update
+          apt-get install -y proxmox-archive-keyring
+          apt-get upgrade -y
+          apt-get install -y build-essential elfutils libelf-dev proxmox-default-kernel proxmox-default-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(dpkg -L $(dpkg -s $(dpkg -s proxmox-default-headers | grep "Depends: " | cut -d " " -f2) | grep "Depends: " | cut -d " " -f2) | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-archlinux:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm git linux linux-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Check Kernel Compatibility
+        if: github.event_name != 'workflow_dispatch'
+        id: check_kernel
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          echo "Detected kernel: $KERNELRELEASE"
+
+          REGEX=$(grep '^BUILD_EXCLUSIVE_KERNEL=' dkms.conf | cut -d'"' -f2)
+
+          if [[ ! "$KERNELRELEASE" =~ $REGEX ]]; then
+            echo "Kernel $KERNELRELEASE not supported yet."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Kernel $KERNELRELEASE is supported."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Module
+        if: github.event_name == 'workflow_dispatch' || steps.check_kernel.outputs.skip_build == 'false'
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          sudo make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-archlinux-lts:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm git linux-lts linux-lts-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-lts-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          sudo make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-archlinux-mainline:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman-key --init
+          cat <<EOF >> /etc/pacman.conf
+          [archlinuxcn]
+          Server = https://repo.archlinuxcn.org/\$arch
+          SigLevel = Never
+          EOF
+          pacman -Syu --noconfirm git linux-mainline linux-mainline-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Check Kernel Compatibility
+        if: github.event_name != 'workflow_dispatch'
+        id: check_kernel
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-mainline-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          echo "Detected kernel: $KERNELRELEASE"
+
+          REGEX=$(grep '^BUILD_EXCLUSIVE_KERNEL=' dkms.conf | cut -d'"' -f2)
+
+          if [[ ! "$KERNELRELEASE" =~ $REGEX ]]; then
+            echo "Kernel $KERNELRELEASE not supported yet."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Kernel $KERNELRELEASE is supported."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Module
+        if: github.event_name == 'workflow_dispatch' || steps.check_kernel.outputs.skip_build == 'false'
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-mainline-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          sudo make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-cachyos:
+    runs-on: ubuntu-24.04
+    container:
+      image: cachyos/cachyos:latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel git linux-cachyos linux-cachyos-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Check Kernel Compatibility
+        if: github.event_name != 'workflow_dispatch'
+        id: check_kernel
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-cachyos-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          echo "Detected kernel: $KERNELRELEASE"
+
+          REGEX=$(grep '^BUILD_EXCLUSIVE_KERNEL=' dkms.conf | cut -d'"' -f2)
+
+          if [[ ! "$KERNELRELEASE" =~ $REGEX ]]; then
+            echo "Kernel $KERNELRELEASE not supported yet."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Kernel $KERNELRELEASE is supported."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Module
+        if: github.event_name == 'workflow_dispatch' || steps.check_kernel.outputs.skip_build == 'false'
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-cachyos-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          sudo make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd) CC=clang CXX=clang++ LD=ld.lld
+
+  test-cachyos-lts:
+    runs-on: ubuntu-24.04
+    container:
+      image: cachyos/cachyos:latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel git linux-cachyos-lts linux-cachyos-lts-headers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Check Kernel Compatibility
+        if: github.event_name != 'workflow_dispatch'
+        id: check_kernel
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-cachyos-lts-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          echo "Detected kernel: $KERNELRELEASE"
+
+          REGEX=$(grep '^BUILD_EXCLUSIVE_KERNEL=' dkms.conf | cut -d'"' -f2)
+
+          if [[ ! "$KERNELRELEASE" =~ $REGEX ]]; then
+            echo "Kernel $KERNELRELEASE not supported yet."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Kernel $KERNELRELEASE is supported."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Module
+        if: github.event_name == 'workflow_dispatch' || steps.check_kernel.outputs.skip_build == 'false'
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(pacman -Qql linux-cachyos-lts-headers | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          sudo make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-fedora:
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:rawhide
+    steps:
+      - name: Install Dependencies
+        run: |
+          dnf install -y fedpkg fedora-packager rpmdevtools \
+            gcc gcc-c++ gcc-plugin-devel glibc-static make \
+            tree kernel-rpm-macros kmodtool \
+            kernel kernel-devel kernel-modules kernel-modules-core
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(rpm -ql kernel-modules-core | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-opensuse:
+    runs-on: ubuntu-24.04
+    container:
+      image: opensuse/tumbleweed:latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          zypper install -y --no-confirm \
+            kernel-default kernel-default-devel \
+            rpm-build
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(rpm -ql kernel-default-devel | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  test-opensuse-lts:
+    runs-on: ubuntu-24.04
+    container:
+      image: opensuse/tumbleweed:latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          zypper install -y --no-confirm \
+            kernel-longterm kernel-longterm-devel \
+            rpm-build
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Build Module
+        working-directory: usb_oc-dkms
+        run: |
+          KERNEL_SOURCE_DIR=$(rpm -ql kernel-longterm-devel | grep -m 1 -Eo ".*/lib/modules/[^/]+/build")
+          KERNELRELEASE=$(echo -n "$KERNEL_SOURCE_DIR" | sed 's/.*\/lib\/modules\///g;s/\/build//')
+          make -j$(nproc) KERNELRELEASE=$KERNELRELEASE -C $KERNEL_SOURCE_DIR M=$(pwd)
+
+  # test-nixos:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: "Install Nix"
+  #       uses: cachix/install-nix-action@v31.5.1
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #       with:
+  #         path: usb_oc-dkms
+  #     - name: Build usb_oc kernel module for NixOS
+  #       working-directory: usb_oc-dkms
+  #       env:
+  #         GC_DONT_GC: "1"
+  #       run: |
+  #         nix --version
+  #         nix flake check

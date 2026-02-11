@@ -1,0 +1,15 @@
+Source: usb-oc-dkms
+Section: kernel
+Priority: optional
+Maintainer: p0358 <p0358@users.noreply.github.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13), dh-sequence-dkms
+Standards-Version: 1.0
+Homepage: https://github.com/p0358/usb_oc-dkms
+
+Package: usb-oc-dkms
+Architecture: amd64
+Depends:
+  ${misc:Depends}, build-essential
+Description: Kernel module for overclocking USB devices

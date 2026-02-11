@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  packaging-debian:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential devscripts dh-make dh-dkms dkms tree
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Packaging
+        working-directory: usb_oc-dkms
+        run: |
+          LATEST_VERSION=$(grep "^PACKAGE_VERSION" "dkms.conf" | sed 's/.*\?"\([^"]*\)".*/\1/')
+          ln -s packaging/debian debian
+          sed -i "s/###LATEST_VERSION###/$LATEST_VERSION/g" debian/control debian/changelog
+          dpkg-buildpackage --build=binary --post-clean --unsigned-source --unsigned-changes
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: "*.deb"
+
+  packaging-archlinux:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm git dkms
+          useradd -m user
+          sed -i 's/COMPRESSZST=.*/COMPRESSZST=(zstd -c -T0 --ultra -22 -)/' /etc/makepkg.conf
+          echo "user ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Packaging
+        working-directory: usb_oc-dkms/packaging/arch
+        run: |
+          chown -R user: .
+          sudo -u user makepkg -s --noconfirm
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: "usb_oc-dkms/packaging/arch/*.pkg*"
+
+  packaging-fedora:
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:rawhide
+    steps:
+      - name: Install Dependencies
+        run: |
+          dnf install -y fedpkg fedora-packager rpmdevtools \
+            perl-generators tree
+          rpmdev-setuptree
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: usb_oc-dkms
+      - name: Pack a tar with needed files for rpmbuild
+        working-directory: usb_oc-dkms
+        run: |
+          tar cf packaging/rpm/files.tar dkms.conf Makefile src LICENSE README.md
+      - name: Packaging
+        working-directory: usb_oc-dkms/packaging/rpm
+        run: |
+          rpmbuild --define "_sourcedir `pwd`" --define "_topdir `pwd`" -ba usb_oc-dkms.spec
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedora-dkms-package
+          path: "usb_oc-dkms/packaging/rpm/RPMS/noarch/*.rpm*"
+
+  release:
+    runs-on: ubuntu-24.04
+    needs: [packaging-debian, packaging-archlinux]
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.pkg*
+            *.deb

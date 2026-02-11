@@ -1,0 +1,5 @@
+usb-oc-dkms (###LATEST_VERSION###) UNRELEASED; urgency=low
+
+  * Initial release
+
+ -- p0358 <p0358@users.noreply.github.com>  Mon, 14 Feb 2026 00:00:00 +0200

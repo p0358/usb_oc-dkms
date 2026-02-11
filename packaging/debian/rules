@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+#export DH_VERBOSE = 1
+include /usr/share/dpkg/default.mk
+
+%:
+	dh $@ --with dkms
+
+override_dh_autoreconf:
+
+override_dh_auto_test:
+
+override_dh_auto_configure:
+
+override_dh_auto_clean:
+
+override_dh_auto_build:
+
+override_dh_auto_install:
+
+
+override_dh_install:
+	dh_install Makefile src usr/src/usb_oc-$(DEB_VERSION_UPSTREAM)/
+	dh_install README.md usr/share/doc/usb-oc-dkms/
+
+override_dh_dkms:
+	dh_dkms -V $(DEB_VERSION_UPSTREAM) -- $(CURDIR)/dkms.conf
+	ls -la * */*
+	ls -la debian/usb-oc-dkms/usr/src debian/usb-oc-dkms/usr/src/*
+	tree .
+	sed -i -Ee "s|^MODULE_VERSION(\"[^\"]*\")\;|MODULE_VERSION\(\"$(DEB_VERSION_UPSTREAM)\"\)\;|" debian/usb-oc-dkms/usr/src/usb_oc-$(DEB_VERSION_UPSTREAM)/src/usb_oc.c
+	sed -i -e 's|DKMS_PACKAGE_NAME=.*|DKMS_PACKAGE_NAME=usb-oc-dkms|' debian/usb-oc-dkms.postinst.debhelper
