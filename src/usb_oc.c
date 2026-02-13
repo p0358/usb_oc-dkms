@@ -142,9 +142,11 @@ static unsigned short usb_check_interrupt_interval_override(struct usb_device* u
 	u16 product = le16_to_cpu(udev->descriptor.idProduct);
 
 	mutex_lock(&interrupt_interval_override_mutex);
-	for (i = 0; i < interrupt_interval_override_count; i++) {
+	for (i = 0; i < interrupt_interval_override_count; i++)
+	{
 		if (interrupt_interval_override_list[i].vendor == vendor
-				&& interrupt_interval_override_list[i].product == product) {
+				&& interrupt_interval_override_list[i].product == product)
+		{
 
 			res = interrupt_interval_override_list[i].interval;
 			mutex_unlock(&interrupt_interval_override_mutex);
@@ -284,8 +286,16 @@ static int usb_device_cb(struct usb_device* udev, void* data)
 
 static int __init on_module_init(void)
 {
-	printk(KERN_INFO "usb_oc: [DEBUG] [on_module_init]\n");
-	usb_for_each_dev(NULL, &usb_device_cb);
+	if (interrupt_interval_override_count > 0)
+	{
+		usb_for_each_dev(NULL, &usb_device_cb);
+	}
+	else
+	{
+		printk(KERN_WARNING "usb_oc: No configuration specified in \"interrupt_interval_override\" module parameter.\n");
+		printk(KERN_WARNING "usb_oc: You can configure it on runtime by writing into: /sys/module/usb_oc/parameters/interrupt_interval_override\n");
+	}
+
 	usb_register_notify(&usb_nb);
 	
 	configured = 1;
