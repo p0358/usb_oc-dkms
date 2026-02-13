@@ -8,14 +8,6 @@ MODULE_AUTHOR("p0358");
 MODULE_DESCRIPTION("Filter kernel module to set the polling rate of select USB devices to a custom value.");
 MODULE_VERSION("1.0");
 
-//static struct usb_device* adapter_device = NULL;
-
-//static unsigned short restore_interval = 8;
-//static unsigned short configured_interval = 1;
-
-//////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
-
 /* A struct associated with the interrupt_interval_override module parameter, representing
    an user's choice to force a specific interrupt interval upon all interrupt endpoints of
    a certain device. */
@@ -36,6 +28,8 @@ static size_t interrupt_interval_override_count = 0;
 
 static int usb_device_cb(struct usb_device* udev, void* data);
 
+/* Note that if this parameter is set at the time of module loading,
+   this function will be called before on_module_init() */
 static int interrupt_interval_override_param_set(const char *value, const struct kernel_param *kp)
 {
 	const char *p;
@@ -45,7 +39,6 @@ static int interrupt_interval_override_param_set(const char *value, const struct
 	struct interrupt_interval_override param;
 	size_t count, max_count, i, len;
 	int err, res;
-	printk(KERN_INFO "usb_oc: [DEBUG] [interrupt_interval_override_param_set]\n");
 
 	mutex_lock(&interrupt_interval_override_mutex);
 
@@ -129,7 +122,7 @@ static int interrupt_interval_override_param_set(const char *value, const struct
 	/* Apply the new value (if the module is being reconfigured on runtime) */
 	if (configured)
 	{
-		printk(KERN_INFO "usb_oc: Configuration changed, applying changes... (%s)\n", value);
+		printk(KERN_INFO "usb_oc: Configuration changed, applying changes...\n");
 		usb_for_each_dev(NULL, &usb_device_cb);
 	}
 
@@ -161,9 +154,6 @@ static unsigned short usb_check_interrupt_interval_override(struct usb_device* u
 	mutex_unlock(&interrupt_interval_override_mutex);
 	return 0;
 }
-
-//////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
 
 /* Patches all applicable endpoints. */
 static unsigned int patch_endpoints(struct usb_device* udev, unsigned short interval)
@@ -267,6 +257,10 @@ static int on_usb_notify(struct notifier_block* self, unsigned long action, void
 		break;
 
 	case USB_DEVICE_REMOVE:
+		/* We currently don't support restoring the previous bInterval value per-device on unload, unfortunately.
+		   That's because theoretically multiple interrupt endpoints on the device level may have different 
+		   original bInterval value, so that'd be annoying to code. Patches welcome if you care.
+		   And if you don't, just re-plug your device after unloading the module. */
 		break;
 	}
 
@@ -308,40 +302,6 @@ static void __exit on_module_exit(void)
 
 module_init(on_module_init);
 module_exit(on_module_exit);
-
-/*static int on_interval_changed(const char* value, const struct kernel_param* kp)
-{
-	int ret = param_set_ushort(value, kp);
-
-	if (!ret)
-	{
-		if (configured_interval > 255)
-		{
-			printk(KERN_WARNING "usb_oc: Invalid interval parameter specified.\n");
-			configured_interval = 255;
-		}
-		else if (configured_interval == 0)
-		{
-			printk(KERN_WARNING "usb_oc: Invalid interval parameter specified.\n");
-			configured_interval = 1;
-		}
-
-		patch_endpoints(configured_interval);
-	}
-
-	return ret;
-}*/
-
-/*static struct kernel_param_ops interval_ops = {
-	.set = &on_interval_changed,
-	.get = &param_get_ushort
-};
-
-module_param_cb(rate, &interval_ops, &configured_interval, 0644);
-MODULE_PARM_DESC(rate, "Polling rate (default: 1)");*/
-
-/////////////////////
-/////////////////////
 
 static const struct kernel_param_ops interrupt_interval_override_param_ops = {
 	.set = interrupt_interval_override_param_set,
