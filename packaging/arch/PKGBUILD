@@ -1,7 +1,7 @@
 _modulename=usb_oc
 pkgname=${_modulename}-dkms
 pkgver=1.0
-pkgrel=12
+pkgrel=1
 pkgdesc="Kernel module for overclocking USB devices"
 arch=('any')
 url="https://github.com/p0358/usb_oc-dkms"
