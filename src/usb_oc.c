@@ -164,13 +164,17 @@ static unsigned int patch_endpoints(struct usb_device* udev, unsigned short inte
 
 	if (udev != NULL && udev->actconfig != NULL)
 	{
-		struct usb_interface* interface = udev->actconfig->interface[0];
-
-		if (interface != NULL)
+		for (unsigned int interface = 0; interface < USB_MAXINTERFACES; interface++)
 		{
-			for (unsigned int altsetting = 0; altsetting < interface->num_altsetting; altsetting++)
+			struct usb_interface* interfaceptr = udev->actconfig->interface[interface];
+			if (interfaceptr == NULL)
 			{
-				struct usb_host_interface* altsettingptr = &interface->altsetting[altsetting];
+				continue;
+			}
+
+			for (unsigned int altsetting = 0; altsetting < interfaceptr->num_altsetting; altsetting++)
+			{
+				struct usb_host_interface* altsettingptr = &interfaceptr->altsetting[altsetting];
 
 				for (__u8 endpoint = 0; endpoint < altsettingptr->desc.bNumEndpoints; endpoint++)
 				{
@@ -200,29 +204,29 @@ static unsigned int patch_endpoints(struct usb_device* udev, unsigned short inte
 					}
 				}
 			}
+		}
 
-			if (patched_count > 0)
+		if (patched_count > 0)
+		{
+			/*
+			* Attempt to lock the device.
+			* This is required by the kernel documentation but it seems that some systems won't let you lock the USB device.
+			* Older versions before 1.2 never called this function and still worked so we proceed even if locking fails.
+			*/
+			int ret = usb_lock_device_for_reset(udev, NULL);
+			if (ret)
 			{
-				/*
-				* Attempt to lock the device.
-				* This is required by the kernel documentation but it seems that some systems won't let you lock the USB device.
-				* Older versions before 1.2 never called this function and still worked so we proceed even if locking fails.
-				*/
-				int ret = usb_lock_device_for_reset(udev, NULL);
-				if (ret)
-				{
-					printk(KERN_ERR "usb_oc: Failed to acquire lock for USB device (error: %d). Resetting device anyway...\n", ret);
-				}
-				/* TODO: It might be possible to make the new bInterval value take effect without calling usb_reset_device? */
-				if (usb_reset_device(udev))
-				{
-					printk(KERN_ERR "usb_oc: Could not reset device (error: %d). bInterval value was NOT changed.\n", ret);
-				}
-				/* Only unlock the device if usb_lock_device_for_reset succeeded. */
-				if (!ret)
-				{
-					usb_unlock_device(udev);
-				}
+				printk(KERN_ERR "usb_oc: Failed to acquire lock for USB device (error: %d). Resetting device anyway...\n", ret);
+			}
+			/* TODO: It might be possible to make the new bInterval value take effect without calling usb_reset_device? */
+			if (usb_reset_device(udev))
+			{
+				printk(KERN_ERR "usb_oc: Could not reset device (error: %d). bInterval value was NOT changed.\n", ret);
+			}
+			/* Only unlock the device if usb_lock_device_for_reset succeeded. */
+			if (!ret)
+			{
+				usb_unlock_device(udev);
 			}
 		}
 	}
