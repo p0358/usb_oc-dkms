@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 %endif
 %global dkms_name usb_oc
-%global version 1.0
+%global version 1.1
 
 Name:       %{dkms_name}-dkms
 Version:    %{version}

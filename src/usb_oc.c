@@ -6,7 +6,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("p0358");
 MODULE_DESCRIPTION("Filter kernel module to set the polling rate of select USB devices to a custom value.");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.1");
 
 /* A struct associated with the interrupt_interval_override module parameter, representing
    an user's choice to force a specific interrupt interval upon all interrupt endpoints of

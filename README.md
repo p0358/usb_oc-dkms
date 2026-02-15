@@ -77,7 +77,7 @@ You can go to [Releases](https://github.com/p0358/usb_oc-dkms/releases) section 
 #### Debian/Ubuntu/Mint/Pop_OS (.deb)
 
 ```console
-# curl -Lo /tmp/usb-oc-dkms.deb https://github.com/p0358/usb_oc-dkms/releases/download/v1.0/usb-oc-dkms_1.0_amd64.deb
+# curl -Lo /tmp/usb-oc-dkms.deb https://github.com/p0358/usb_oc-dkms/releases/download/v1.1/usb-oc-dkms_1.1_amd64.deb
 # apt install /tmp/usb-oc-dkms.deb
 ```
 
@@ -86,21 +86,21 @@ You can go to [Releases](https://github.com/p0358/usb_oc-dkms/releases) section 
 AUR: [usb_oc-dkms](https://aur.archlinux.org/packages/usb_oc-dkms) or:
 
 ```console
-# curl -Lo /tmp/usb_oc-dkms.pkg.tar.zst https://github.com/p0358/usb_oc-dkms/releases/download/v1.0/usb_oc-dkms-1.0-1-any.pkg.tar.zst
+# curl -Lo /tmp/usb_oc-dkms.pkg.tar.zst https://github.com/p0358/usb_oc-dkms/releases/download/v1.1/usb_oc-dkms-1.1-1-any.pkg.tar.zst
 # pacman -U /tmp/usb_oc-dkms.pkg.tar.zst
 ```
 
 #### Fedora (.rpm)
 
 ```console
-# curl -Lo /tmp/usb_oc-dkms.rpm https://github.com/p0358/usb_oc-dkms/releases/download/v1.0/usb_oc-dkms-1.0-1.fc45.noarch.rpm
+# curl -Lo /tmp/usb_oc-dkms.rpm https://github.com/p0358/usb_oc-dkms/releases/download/v1.1/usb_oc-dkms-1.1-1.fc45.noarch.rpm
 # dnf install /tmp/usb_oc-dkms.rpm
 ```
 
 #### openSUSE (.rpm)
 
 ```console
-# curl -Lo /tmp/usb_oc-dkms.rpm https://github.com/p0358/usb_oc-dkms/releases/download/v1.0/usb_oc-dkms-1.0-1.fc45.noarch.rpm
+# curl -Lo /tmp/usb_oc-dkms.rpm https://github.com/p0358/usb_oc-dkms/releases/download/v1.1/usb_oc-dkms-1.1-1.fc45.noarch.rpm
 # zypper install --allow-unsigned-rpm /tmp/usb_oc-dkms.rpm
 ```
 
