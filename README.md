@@ -55,9 +55,7 @@ Still has a maximum of 1000 Hz, but the values of `bInterval` differ (`Period = 
 | 6                  | 32 ms          | 31.25 Hz  |
 | 7 to 255           | 32 ms          | 31.25 Hz  |
 
-#### Higher than that
-
-Don't quote me on this, I pulled the table below out of my ass and didn't test it yet :3 The formula seems to be `Period = 2^(bInterval - 1) * 0.125`.
+**OR** maybe it's actually the table below. The formula seems to be `Period = 2^(bInterval - 1) * 0.125`.
 
 | Value of bInterval | Polling Period | Frequency |
 | ------------------ | -------------- | --------- |
@@ -67,6 +65,10 @@ Don't quote me on this, I pulled the table below out of my ass and didn't test i
 | 4                  | 1 ms           | 1000 Hz   |
 | 5                  | 2 ms           | 500 Hz    |
 | 6                  | 4 ms           | 250 Hz    |
+
+> [!IMPORTANT]  
+> **This needs further research and testing.** Please submit overclock results after step 4 and what bInterval values corresponded to which polling.
+> If in doubt, *underclock* the device to a bInterval value like 6 and then test the polling.
 
 ### 1. Install
 
