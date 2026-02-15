@@ -22,17 +22,17 @@ Negotiated speed: Full Speed (12Mbps)
 
 #### Low Speed (USB 1.1) (1.5 Mbps)
 
-Extremely rare, rather forget about overclocking those too much. Note that "0" itself might not be a valid value.
+Extremely rare, rather forget about overclocking those too much. bInterval range is from 1 to 255.
 
 | Value of bInterval | Polling Period | Frequency |
 | ------------------ | -------------- | --------- |
-| 0 to 15            | 8 ms           | 125 Hz    |
+| 1 to 15            | 8 ms           | 125 Hz    |
 | 16 to 35           | 16 ms          | 62.5 Hz   |
 | 36 to 255          | 32 ms          | 31.25 Hz  |
 
 #### Full Speed (USB 1.1) (12 Mbps)
 
-This is most of the devices.
+This is most of the devices. bInterval range is from 1 to 255. Note that it seems a technically-2.0 device can be operating at this reduced speed and thus make use of this table.
 
 | Value of bInterval | Polling Period | Frequency |
 | ------------------ | -------------- | --------- |
@@ -43,21 +43,9 @@ This is most of the devices.
 | 16 (*to 31*)       | 16 ms          | 62.5 Hz   |
 | 32 (*to 255*)      | 32 ms          | 31.25 Hz  |
 
-#### High Speed (USB 2.0) (480 Mbps)
+#### High Speed (USB 2.0) (480 Mbps) or higher
 
-Still has a maximum of 1000 Hz, but the values of `bInterval` differ (`Period = 2^(bInterval - 1)`).
-
-| Value of bInterval | Polling Period | Frequency |
-| ------------------ | -------------- | --------- |
-| 1                  | 1 ms           | 1000 Hz   |
-| 2                  | 2 ms           | 500 Hz    |
-| 3                  | 4 ms           | 250 Hz    |
-| 4                  | 8 ms           | 125 Hz    |
-| 5                  | 16 ms          | 62.5 Hz   |
-| 6                  | 32 ms          | 31.25 Hz  |
-| 7 to 255           | 32 ms          | 31.25 Hz  |
-
-**OR** maybe it's actually the table below. The formula seems to be `Period = 2^(bInterval - 1) * 0.125`.
+The formula seems to be `Period = 2^(bInterval - 1) * 0.125`. bInterval range is from 1 to 16.
 
 | Value of bInterval | Polling Period | Frequency |
 | ------------------ | -------------- | --------- |
@@ -70,6 +58,7 @@ Still has a maximum of 1000 Hz, but the values of `bInterval` differ (`Period = 
 
 > [!IMPORTANT]  
 > **This needs further research and testing.** Please submit overclock results after step 4 and what bInterval values corresponded to which polling.
+>
 > If in doubt, *underclock* the device to a bInterval value like 6 and then test the polling.
 
 ### 1. Install
@@ -84,6 +73,8 @@ You can go to [Releases](https://github.com/p0358/usb_oc-dkms/releases) section 
 ```
 
 #### Arch Linux/CachyOS/EndevourOS/Manjaro (.pkg.tar.zst)
+
+Make sure to first install appropriate headers package for the kernel you're using! (e.g. `linux-headers` or `linux-zen-headers` or `linux-lts-headers` or `linux-cachyos-headers` or `linux-cachyos-lts-headers` etc.).
 
 AUR: [usb_oc-dkms](https://aur.archlinux.org/packages/usb_oc-dkms) or:
 
@@ -224,11 +215,19 @@ What do I know? A you can see in "Alternatives" section below, some means of ove
 
 The `usbhid` driver has options for [`mousepoll`](https://wiki.archlinux.org/title/Mouse_polling_rate#Set_polling_interval), but it [reportedly doesn't work with USB 3 devices](https://wiki.archlinux.org/title/Mouse_polling_rate#Polling_rate_not_changing). The option `kbpoll` also exists for keyboards, but likely suffers from the same problem. It also has an option `jspoll` for joysticks, but it doesn't work with gamepads using other drivers like `xpad`.
 
-[Linux-Kernel_MiSTer] has a downstream patch for [`xpad` driver adding `cpoll` option](https://github.com/MiSTer-devel/Linux-Kernel_MiSTer/blob/master/drivers/input/joystick/xpad.c). Unfortunately it is not upstreamed.
+[Linux-Kernel_MiSTer](https://github.com/MiSTer-devel/Linux-Kernel_MiSTer) has a downstream patch for [`xpad` driver adding `cpoll` option](https://github.com/MiSTer-devel/Linux-Kernel_MiSTer/blob/master/drivers/input/joystick/xpad.c). Unfortunately it is not upstreamed.
 
 Nobara comes with [this patch](https://github.com/GloriousEggroll/Linux-Pollrate-Patch) applied to its kernel.
 
 Some devices have settings apps that allow changing on-device configuration used by the device's firmware and its processor. Sometimes this configuration include the poll rate that will be advertised by the device, without needing a kernel module for it (for example Solaar for select Logitech mice).
+
+## Useful links
+
+- https://www.overclock.net/threads/usb-mouse-hard-overclocking-2000-hz.1589644/
+- https://docs.google.com/document/d/1cQ3pbKZm_yUtcLK9ZIXyPzVbTJkvnfxKIyvuFMwzWe0/edit
+- https://support.microchip.com/s/article/What-is-bInterval (something is wrong with High Speed table though...)
+- https://www.keil.com/pack/doc/mw/usb/html/_u_s_b__endpoint__descriptor.html
+- http://janaxelson.com/usbfaq.htm
 
 ## Thanks to
 
