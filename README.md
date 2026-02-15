@@ -4,6 +4,8 @@ Kernel module for overclocking USB devices (controllers, mice, keyboards, etc.).
 
 This allows you to change their poll rates by loading this out-of-tree module, instead of having to patch and re-compile the whole kernel.
 
+Why even overclock USB devices at all? For input devices, to achieve lower effective input latency and higher input smoothness (so pretty much the same reason one would want a higher-Hz screen too).
+
 ## Installation and setup
 
 Firstly find the `VID:PID` of your USB device with `lsusb`, such as `054c:0ce6`.
