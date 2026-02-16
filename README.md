@@ -1,6 +1,6 @@
 # usb_oc-dkms
 
-Kernel module for overclocking USB devices (controllers, mice, keyboards, etc.). Equivalent of the `hidusbf` driver on Windows.
+Linux kernel module for overclocking USB devices (controllers, mice, keyboards, etc.). Equivalent of the `hidusbf` driver on Windows.
 
 This allows you to change their poll rates by loading this out-of-tree module, instead of having to patch and re-compile the whole kernel.
 
@@ -223,6 +223,7 @@ Some devices have settings apps that allow changing on-device configuration used
 
 ## Useful links
 
+- https://gamepadla.com/
 - https://www.overclock.net/threads/usb-mouse-hard-overclocking-2000-hz.1589644/
 - https://docs.google.com/document/d/1cQ3pbKZm_yUtcLK9ZIXyPzVbTJkvnfxKIyvuFMwzWe0/edit
 - https://support.microchip.com/s/article/What-is-bInterval (something is wrong with High Speed table though...)
