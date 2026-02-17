@@ -146,7 +146,7 @@ Firstly, set the module to load on system startup:
 Secondly, set the module configuration (again, assuming you want, for the device with `VID:PID` of `054c:0ce6`, to set bInterval to `1`):
 
 ```console
-# echo 'options usb_oc interrupt_interval_override=054c:0ce6:1' > /etc/modules-load.d/usb_oc.conf
+# echo 'options usb_oc interrupt_interval_override=054c:0ce6:1' > /etc/modprobe.d/usb_oc.conf
 ```
 
 After rebooting the machine, verify the module was loaded and working with:
