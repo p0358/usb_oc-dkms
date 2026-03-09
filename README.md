@@ -20,19 +20,9 @@ $ lsusb -d 054c:0ce6 -v | grep '^Negotiated speed:'
 Negotiated speed: Full Speed (12Mbps)
 ```
 
-#### Low Speed (USB 1.1) (1.5 Mbps)
+#### USB 1.1 (Low Speed 1.5 Mbps, Full Speed 12 Mbps)
 
-Extremely rare, rather forget about overclocking those too much. bInterval range is from 1 to 255.
-
-| Value of bInterval | Polling Period | Frequency |
-| ------------------ | -------------- | --------- |
-| 1 to 15            | 8 ms           | 125 Hz    |
-| 16 to 35           | 16 ms          | 62.5 Hz   |
-| 36 to 255          | 32 ms          | 31.25 Hz  |
-
-#### Full Speed (USB 1.1) (12 Mbps)
-
-This is most of the devices. bInterval range is from 1 to 255. Note that it seems a technically-2.0 device can be operating at this reduced speed and thus make use of this table.
+This is most of the devices. bInterval range is from 1 to 255. Note that it seems a technically-2.0 device can be operating at either of these reduced speeds and thus make use of this table.
 
 | Value of bInterval | Polling Period | Frequency |
 | ------------------ | -------------- | --------- |
@@ -41,9 +31,11 @@ This is most of the devices. bInterval range is from 1 to 255. Note that it seem
 | 4 (*to 7*)         | 4 ms           | 250 Hz    |
 | 8 (*to 15*)        | 8 ms           | 125 Hz    |
 | 16 (*to 31*)       | 16 ms          | 62.5 Hz   |
-| 32 (*to 255*)      | 32 ms          | 31.25 Hz  |
+| 32 (*to 63*)       | 32 ms          | 31.25 Hz  |
+| 64 (*to 127*)      | 64 ms          | 15.625 Hz |
+| 128 and above      | 128 ms         | 7.8125 Hz |
 
-#### High Speed (USB 2.0) (480 Mbps) or higher
+#### USB 2.0 (High Speed 480 Mbps) or higher
 
 The formula seems to be `Period = 2^(bInterval - 1) * 0.125`. bInterval range is from 1 to 16.
 
